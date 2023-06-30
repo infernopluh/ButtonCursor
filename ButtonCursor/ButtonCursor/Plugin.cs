@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using System;
 using UnityEngine;
 using Photon.Pun;
@@ -16,6 +16,7 @@ namespace ButtonCursor
         public static Plugin instance;
         public bool isModded;
         public bool isAllowed;
+        public bool stopSpammingErrorsPlease;
 
         GameObject pointer;
         GameObject tc;
@@ -29,76 +30,52 @@ namespace ButtonCursor
         public void Init(object sender, EventArgs e)
         {
             instance = this;
+            stopSpammingErrorsPlease = true;
         }
 
         public void Update()
         {
-            if (PhotonNetwork.InRoom)
+            if (stopSpammingErrorsPlease)
             {
-                if (isModded || PhotonNetwork.CurrentRoom.IsVisible == false)
+                if (PhotonNetwork.InRoom)
                 {
-                    isAllowed = true;
-                }
-                else
-                {
-                    isAllowed = false;
-                }
-            }
-            else
-            {
-                isAllowed = true;
-            }
-
-            if (isAllowed)
-            {
-                if (pointer == null)
-                {
-                    tc = GorillaTagger.Instance.rightHandTriggerCollider;
-                    pointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    pointer.transform.localScale = GorillaTagger.Instance.rightHandTriggerCollider.transform.localScale / 15;
-                    pointer.layer = LayerMask.NameToLayer("TransparentFX");
-                    Destroy(pointer.GetComponent<SphereCollider>());
-                }
-                else
-                {
-                    if (!XRSettings.isDeviceActive)
+                    if (isModded || PhotonNetwork.CurrentRoom.IsVisible == false)
                     {
-                        pointer.GetComponent<Renderer>().enabled = false;
-                        Vector2 wp = Mouse.current.position.ReadValue();
-                        Ray ray = GorillaTagger.Instance.thirdPersonCamera.GetComponentInChildren<Camera>().ScreenPointToRay(wp);
-                        if (Physics.Raycast(ray, out RaycastHit info, 500, GorillaLocomotion.Player.Instance.locomotionEnabledLayers))
-                        {
-                            pos = info.point;
-                            pointer.transform.position = pos;
-                        }
-                        if (Mouse.current.leftButton.isPressed)
-                        {
-                            if (tc.GetComponent<TransformFollow>().enabled == true)
-                            {
-                                tc.GetComponent<TransformFollow>().enabled = false;
-                                pointer.GetComponent<Renderer>().material.color = Color.green;
-                            }
-                            tc.transform.position = pos;
-                        }
-                        else
-                        {
-                            if (tc.GetComponent<TransformFollow>().enabled == false)
-                            {
-                                pointer.GetComponent<Renderer>().material.color = Color.white;
-                                tc.GetComponent<TransformFollow>().enabled = true;
-                            }
-                        }
+                        isAllowed = true;
                     }
                     else
                     {
-                        if (GorillaTagger.Instance.offlineVRRig.rightMiddle.gripValue > 0.2f)
+                        isAllowed = false;
+                    }
+                }
+                else
+                {
+                    isAllowed = true;
+                }
+
+                if (isAllowed)
+                {
+                    if (pointer == null)
+                    {
+                        tc = GorillaTagger.Instance.rightHandTriggerCollider;
+                        pointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                        pointer.transform.localScale = GorillaTagger.Instance.rightHandTriggerCollider.transform.localScale / 15;
+                        pointer.layer = LayerMask.NameToLayer("TransparentFX");
+                        Destroy(pointer.GetComponent<SphereCollider>());
+                    }
+                    else
+                    {
+                        if (!XRSettings.isDeviceActive)
                         {
-                            if (Physics.Raycast(GorillaLocomotion.Player.Instance.rightControllerTransform.position, GorillaLocomotion.Player.Instance.rightControllerTransform.forward, out RaycastHit info, 500, GorillaLocomotion.Player.Instance.locomotionEnabledLayers))
+                            pointer.GetComponent<Renderer>().enabled = false;
+                            Vector2 wp = Mouse.current.position.ReadValue();
+                            Ray ray = GorillaTagger.Instance.thirdPersonCamera.GetComponentInChildren<Camera>().ScreenPointToRay(wp);
+                            if (Physics.Raycast(ray, out RaycastHit info, 500, GorillaLocomotion.Player.Instance.locomotionEnabledLayers))
                             {
                                 pos = info.point;
                                 pointer.transform.position = pos;
                             }
-                            if (GorillaTagger.Instance.offlineVRRig.rightIndex.triggerValue > 0.3f)
+                            if (Mouse.current.leftButton.isPressed)
                             {
                                 if (tc.GetComponent<TransformFollow>().enabled == true)
                                 {
@@ -118,14 +95,42 @@ namespace ButtonCursor
                         }
                         else
                         {
-                            DestroyPointer();
+                            if (GorillaTagger.Instance.offlineVRRig.rightMiddle.gripValue > 0.2f)
+                            {
+                                if (Physics.Raycast(GorillaLocomotion.Player.Instance.rightControllerTransform.position, GorillaLocomotion.Player.Instance.rightControllerTransform.forward, out RaycastHit info, 500, GorillaLocomotion.Player.Instance.locomotionEnabledLayers))
+                                {
+                                    pos = info.point;
+                                    pointer.transform.position = pos;
+                                }
+                                if (GorillaTagger.Instance.offlineVRRig.rightIndex.triggerValue > 0.3f)
+                                {
+                                    if (tc.GetComponent<TransformFollow>().enabled == true)
+                                    {
+                                        tc.GetComponent<TransformFollow>().enabled = false;
+                                        pointer.GetComponent<Renderer>().material.color = Color.green;
+                                    }
+                                    tc.transform.position = pos;
+                                }
+                                else
+                                {
+                                    if (tc.GetComponent<TransformFollow>().enabled == false)
+                                    {
+                                        pointer.GetComponent<Renderer>().material.color = Color.white;
+                                        tc.GetComponent<TransformFollow>().enabled = true;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                DestroyPointer();
+                            }
                         }
                     }
                 }
-            }
-            else
-            {
-                DestroyPointer();
+                else
+                {
+                    DestroyPointer();
+                }
             }
         }
 
